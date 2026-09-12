@@ -1,10 +1,10 @@
-package org.deeplauncher
+package org.deeplauncher.ui
 
 import javafx.fxml.FXML
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 
-class LauncherController {
+class App {
 
     @FXML
     private lateinit var playBtn: Button

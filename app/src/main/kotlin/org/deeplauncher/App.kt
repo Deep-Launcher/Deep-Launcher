@@ -6,9 +6,14 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.image.Image
 import javafx.stage.Stage
+import org.deeplauncher.core.LauncherFiles
+import org.deeplauncher.instance.InstanceManager
+import org.deeplauncher.network.Downloader
+import org.deeplauncher.network.client
+import org.deeplauncher.runtime.RuntimeManager
+import org.deeplauncher.version.VersionManager
 
 class App : Application() {
-
     override fun start(primaryStage: Stage) {
         val root = FXMLLoader.load<Parent>(javaClass.getResource("/ui/launcher.fxml"))
         val scene = Scene(root, 1000.0, 640.0)
@@ -25,5 +30,14 @@ class App : Application() {
 }
 
 fun main() {
+    val downloader = Downloader(client)
+    val versionManager = VersionManager(
+        downloader = downloader,
+        client = client,
+        launcherFiles = LauncherFiles,
+    )
+    val runtimeManager = RuntimeManager(downloader)
+    val instanceManager = InstanceManager(versionManager, runtimeManager)
+
     Application.launch(App::class.java)
 }
