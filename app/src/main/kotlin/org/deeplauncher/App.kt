@@ -3,6 +3,7 @@ package org.deeplauncher
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -16,6 +17,12 @@ import java.io.File
 val json = Json {
     prettyPrint = true
     ignoreUnknownKeys = true
+}
+
+val launcherJson = Json {
+    prettyPrint = true
+    ignoreUnknownKeys = true
+    isLenient = true
 }
 
 data class LauncherFiles(
@@ -68,10 +75,18 @@ class App : Application() {
 }
 
 fun main() {
-    val client = HttpClient(CIO) { install(ContentNegotiation) { json } }
+    val client = HttpClient(CIO) {
+        install(ContentNegotiation) {
+            json(launcherJson)
+        }
+    }
 
     val launcherFiles = setupFiles()
-    val versionManager = VersionManager(client = client, cache = DiskCache(launcherFiles.cacheDir))
+    val versionManager = VersionManager(
+        client = client,
+        launcherFiles = launcherFiles,
+        cache = DiskCache(launcherFiles.cacheDir)
+    )
 
     Application.launch(App::class.java)
 }
