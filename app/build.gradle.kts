@@ -9,6 +9,8 @@ plugins {
     // Apply the JavaFX plugin to download and configure JavaFX modules.
     alias(libs.plugins.javafx)
 
+    kotlin("plugin.serialization") version "1.9.23"
+
     // Apply the application plugin to add support for building a CLI application in Java.
     application
 }
@@ -23,6 +25,8 @@ javafx {
     modules("javafx.controls", "javafx.fxml", "javafx.graphics")
 }
 
+val ktorVersion = "2.3.12"
+
 dependencies {
     // Use JUnit Jupiter for testing.
     testImplementation(libs.junit.jupiter)
@@ -31,6 +35,11 @@ dependencies {
 
     // This dependency is used by the application.
     implementation(libs.guava)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
