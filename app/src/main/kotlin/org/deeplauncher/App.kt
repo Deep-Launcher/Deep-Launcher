@@ -1,64 +1,19 @@
 package org.deeplauncher
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.image.Image
 import javafx.stage.Stage
-import kotlinx.serialization.json.Json
-import org.deeplauncher.utils.DiskCache
-import java.io.File
-
-val json = Json {
-    prettyPrint = true
-    ignoreUnknownKeys = true
-}
-
-val launcherJson = Json {
-    prettyPrint = true
-    ignoreUnknownKeys = true
-    isLenient = true
-}
-
-data class LauncherFiles(
-    val rootDir: File,
-    val cacheDir: File,
-    val instancesDir: File,
-    val librariesDir: File,
-    val assetsDir: File
-)
-
-fun setupFiles(): LauncherFiles {
-    val root = File(System.getProperty("user.home"), ".deeplauncher")
-
-    val cache = File(root, "cache")
-    val assets = File(root, "assets")
-    val assetsIndexes = File(assets, "indexes")
-    val assetsObjects = File(assets, "objects")
-    val libraries = File(root, "libraries")
-    val instances = File(root, "instances")
-
-    assetsIndexes.mkdirs()
-    assetsObjects.mkdirs()
-    libraries.mkdirs()
-    instances.mkdirs()
-
-    return LauncherFiles(
-        rootDir = root,
-        cacheDir = cache,
-        instancesDir = instances,
-        librariesDir = libraries,
-        assetsDir = assets
-    )
-}
+import org.deeplauncher.core.LauncherFiles
+import org.deeplauncher.instance.InstanceManager
+import org.deeplauncher.network.Downloader
+import org.deeplauncher.network.client
+import org.deeplauncher.runtime.RuntimeManager
+import org.deeplauncher.version.VersionManager
 
 class App : Application() {
-
     override fun start(primaryStage: Stage) {
         val root = FXMLLoader.load<Parent>(javaClass.getResource("/ui/launcher.fxml"))
         val scene = Scene(root, 1000.0, 640.0)
@@ -75,18 +30,14 @@ class App : Application() {
 }
 
 fun main() {
-    val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(launcherJson)
-        }
-    }
-
-    val launcherFiles = setupFiles()
+    val downloader = Downloader(client)
     val versionManager = VersionManager(
+        downloader = downloader,
         client = client,
-        launcherFiles = launcherFiles,
-        cache = DiskCache(launcherFiles.cacheDir)
+        launcherFiles = LauncherFiles,
     )
+    val runtimeManager = RuntimeManager(downloader)
+    val instanceManager = InstanceManager(versionManager, runtimeManager)
 
     Application.launch(App::class.java)
 }
