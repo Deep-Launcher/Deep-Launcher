@@ -42,4 +42,21 @@ class InstanceRepository {
 
     fun deleteInstance(name: String): Boolean =
         getInstanceDir(name).let { if (it.exists()) it.deleteRecursively() else false }
+
+    fun listInstances(): List<MinecraftInstance> {
+        val dir = LauncherFiles.instancesDir
+        if (!dir.exists()) return emptyList()
+
+        return dir.listFiles { file -> file.isDirectory }
+            ?.mapNotNull { instanceDir ->
+                val configFile = File(instanceDir, "instance.json")
+                if (configFile.exists()) {
+                    runCatching { json.decodeFromString<MinecraftInstance>(configFile.readText()) }.getOrNull()
+                } else {
+                    null
+                }
+            }
+            ?.sortedBy { it.name.lowercase() }
+            ?: emptyList()
+    }
 }

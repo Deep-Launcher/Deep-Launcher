@@ -30,6 +30,11 @@ class VersionManager(
         return repository.listVersions(useCache).getOrNull()?.versions?.find { it.id == id }
     }
 
+    suspend fun listVersions(useCache: Boolean = true): List<VersionInfo> {
+        val manifest = repository.listVersions(useCache).getOrNull() ?: return emptyList()
+        return manifest.versions
+    }
+
     suspend fun isAValidVersion(id: String, useCache: Boolean = true): Boolean {
         return getVersionInfo(id, useCache) != null
     }
@@ -83,6 +88,21 @@ class VersionManager(
         }
     }
 
+    suspend fun ensureLibraryFiles(versionDetail: VersionDetail) {
+        val nativesDir = LauncherFiles.getNativesDir(versionDetail.id)
+
+        for (library in versionDetail.libraries) {
+            if (!OsUtils.isLibraryAllowedOnCurrentOs(library)) continue
+
+            val artifact = library.downloads?.artifact
+            if (artifact != null && artifact.path != null) {
+                downloader.download(artifact.url, File(launcherFiles.librariesDir, artifact.path), expectedSha1 = artifact.sha1)
+            }
+
+            downloadAndExtractNativesIfPresent(library, versionDetail.id, nativesDir)
+        }
+    }
+
     suspend fun downloadVersion(
         versionInfo: VersionInfo,
         onProgress: ((completed: Int, total: Int, url: String) -> Unit)? = null
@@ -90,7 +110,11 @@ class VersionManager(
         val versionDetail: VersionDetail = client.get(versionInfo.url).body()
 
         val clientFile = File(launcherFiles.rootDir, "versions/${versionDetail.id}/${versionDetail.id}.jar")
-        downloader.download(versionDetail.downloads.client.url, clientFile)
+        downloader.download(
+            versionDetail.downloads.client.url,
+            clientFile,
+            expectedSha1 = versionDetail.downloads.client.sha1
+        )
 
         val nativesDir = LauncherFiles.getNativesDir(versionDetail.id)
 
@@ -101,7 +125,7 @@ class VersionManager(
             val libPath = artifact?.path
             if (artifact != null && libPath != null) {
                 val libFile = File(launcherFiles.librariesDir, libPath)
-                downloader.download(artifact.url, libFile)
+                downloader.download(artifact.url, libFile, expectedSha1 = artifact.sha1)
             }
 
             downloadAndExtractNativesIfPresent(library, versionDetail.id, nativesDir)
@@ -122,7 +146,7 @@ class VersionManager(
             ?: "${library.name.replace(":", "-")}-$classifierKey.jar"
 
         val nativeJarFile = File(launcherFiles.cacheDir, "natives-jars/$versionId/$jarName")
-        downloader.download(nativeArtifact.url, nativeJarFile)
+        downloader.download(nativeArtifact.url, nativeJarFile, expectedSha1 = nativeArtifact.sha1)
         ArchiveUtils.extractNativeLibraries(nativeJarFile, nativesDir)
     }
 
@@ -131,7 +155,7 @@ class VersionManager(
         onProgress: ((completed: Int, total: Int, url: String) -> Unit)? = null
     ) {
         val indexFile = File(launcherFiles.assetsDir, "indexes/${assetIndexInfo.id}.json")
-        downloader.download(assetIndexInfo.url, indexFile)
+        downloader.download(assetIndexInfo.url, indexFile, expectedSha1 = assetIndexInfo.sha1)
 
         val assetIndex: AssetIndex = client.get(assetIndexInfo.url).body()
         val totalAssets = assetIndex.objects.size
@@ -148,10 +172,10 @@ class VersionManager(
                         val destFile = File(launcherFiles.assetsDir, "objects/$hashPrefix/${asset.hash}")
 
                         try {
-                            downloader.download(assetUrl, destFile)
+                            downloader.download(assetUrl, destFile, expectedSha1 = asset.hash)
                         } catch (e: Exception) {
                             failedAssets.add(assetUrl)
-                            println("Aviso: falha ao baixar asset $assetUrl (${e.message})")
+                            println("Warning: failed to download asset $assetUrl (${e.message})")
                         }
 
                         val current = completedCount.incrementAndGet()

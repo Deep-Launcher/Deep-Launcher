@@ -27,6 +27,8 @@ class InstanceManager(
         val versionInfo = versionManager.getVersionInfo(instanceConfig.version) ?: return
         val versionDetail: VersionDetail = client.get(versionInfo.url).body()
 
+        versionManager.ensureLibraryFiles(versionDetail)
+
         val requiredJavaVersion = versionManager.getRequiredJavaMajorVersion(versionDetail)
         val javaExecutablePath = LauncherFiles.getJavaPathForMajorVersion(requiredJavaVersion)
 
@@ -39,11 +41,16 @@ class InstanceManager(
         gameLauncher.launchProcess(instanceDir, versionDetail, javaExecutablePath, username)
     }
 
-    suspend fun createInstance(name: String, version: String): MinecraftInstance {
+    suspend fun createInstance(
+        name: String,
+        version: String,
+        onProgress: ((completed: Int, total: Int, url: String) -> Unit)? = null
+    ): MinecraftInstance {
         val versionInfo = versionManager.getVersionInfo(version)
             ?: throw IllegalArgumentException("Version $version not found in the Mojang manifest")
 
         versionManager.downloadVersion(versionInfo) { completed, total, url ->
+            onProgress?.invoke(completed, total, url)
             print("\r$completed / $total downloaded assets ($url)")
             System.out.flush()
         }
@@ -56,6 +63,10 @@ class InstanceManager(
 
     fun loadInstance(name: String): MinecraftInstance? {
         return repository.loadInstance(name)
+    }
+
+    fun listInstances(): List<MinecraftInstance> {
+        return repository.listInstances()
     }
 
     fun saveInstance(instance: MinecraftInstance) {
