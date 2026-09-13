@@ -96,7 +96,11 @@ class VersionManager(
 
             val artifact = library.downloads?.artifact
             if (artifact != null && artifact.path != null) {
-                downloader.download(artifact.url, File(launcherFiles.librariesDir, artifact.path), expectedSha1 = artifact.sha1)
+                downloader.download(
+                    artifact.url,
+                    File(launcherFiles.librariesDir, artifact.path),
+                    expectedSha1 = artifact.sha1
+                )
             }
 
             downloadAndExtractNativesIfPresent(library, versionDetail.id, nativesDir)
@@ -109,7 +113,7 @@ class VersionManager(
     ) {
         val versionDetail: VersionDetail = client.get(versionInfo.url).body()
 
-        val clientFile = File(launcherFiles.rootDir, "versions/${versionDetail.id}/${versionDetail.id}.jar")
+        val clientFile = File(launcherFiles.versionsDir, "${versionDetail.id}/${versionDetail.id}.jar")
         downloader.download(
             versionDetail.downloads.client.url,
             clientFile,

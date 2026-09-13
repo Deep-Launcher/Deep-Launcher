@@ -16,7 +16,7 @@ class GameLauncher {
             .mapNotNull { it.downloads?.artifact?.path }
             .map { File(LauncherFiles.librariesDir, it).absolutePath }
 
-        val clientJar = File(LauncherFiles.rootDir, "versions/${versionDetail.id}/${versionDetail.id}.jar").absolutePath
+        val clientJar = File(LauncherFiles.versionsDir, "${versionDetail.id}/${versionDetail.id}.jar").absolutePath
         val classPath = (libraries + clientJar).joinToString(separator)
         val nativesDir = LauncherFiles.getNativesDir(versionDetail.id)
 
