@@ -1,0 +1,96 @@
+package org.deeplauncher.runtime
+
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import org.deeplauncher.core.LauncherFiles
+import org.deeplauncher.models.VersionDetail
+import org.deeplauncher.utils.OsUtils
+import java.io.File
+
+class ArgumentBuilder(
+    private val version: VersionDetail,
+    gameDir: File,
+    username: String
+) {
+
+    private val placeholders = mapOf(
+        "auth_player_name" to username,
+        "version_name" to version.id,
+        "game_directory" to gameDir.absolutePath,
+        "assets_root" to LauncherFiles.assetsDir.absolutePath,
+        "assets_index_name" to (version.assetIndex.id),
+        "auth_uuid" to "00000000-0000-0000-0000-000000000000",
+        "--accessToken" to "0",
+        "--userType" to "msa",
+        "user_properties" to "{}"
+    )
+
+    fun buildGameArguments(): List<String> {
+        val gameArgs = mutableListOf<String>()
+
+        if (version.arguments?.game != null) {
+            version.arguments.game.forEach { element ->
+                parseArgumentElement(element, gameArgs)
+            }
+        } else if (!version.minecraftArguments.isNullOrBlank()) {
+            val replaced = replacePlaceholders(version.minecraftArguments)
+            gameArgs.addAll(replaced.split(" "))
+        }
+
+        return gameArgs
+    }
+
+    private fun parseArgumentElement(element: JsonElement, targetList: MutableList<String>) {
+        when (element) {
+            is JsonPrimitive -> {
+                targetList.add(replacePlaceholders(element.content))
+            }
+
+            is JsonObject -> {
+                if (evaluateRules(element)) {
+                    when (val value = element["value"]) {
+                        is JsonPrimitive -> targetList.add(replacePlaceholders(value.content))
+                        is JsonArray -> value.forEach {
+                            if (it is JsonPrimitive) {
+                                targetList.add(replacePlaceholders(it.content))
+                            }
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+
+            else -> Unit
+        }
+    }
+
+    private fun evaluateRules(obj: JsonObject): Boolean {
+        val rules = obj["rules"] as? JsonArray ?: return true
+        var allow = false
+
+        for (ruleElement in rules) {
+            val rule = ruleElement as? JsonObject ?: continue
+            val action = (rule["action"] as? JsonPrimitive)?.content ?: continue
+            if (rule["os"] is JsonObject) {
+                val osName = ((rule["os"] as JsonObject)["name"] as? JsonPrimitive)?.content
+                if (osName == OsUtils.getOSName()) {
+                    allow = (action == "allow")
+                }
+            } else {
+                allow = (action == "allow")
+            }
+        }
+        return allow
+    }
+
+    private fun replacePlaceholders(text: String): String {
+        var result = text
+        placeholders.forEach { (key, value) ->
+            result = result.replace($$"${$$key}", value)
+        }
+        return result
+    }
+}

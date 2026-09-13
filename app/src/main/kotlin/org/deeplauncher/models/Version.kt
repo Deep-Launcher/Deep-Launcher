@@ -2,6 +2,13 @@ package org.deeplauncher.models
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+
+@Serializable
+data class ArgumentsDetail(
+    val game: List<JsonElement>? = null,
+    val jvm: List<JsonElement>? = null
+)
 
 @Serializable
 data class VersionDetail(
@@ -10,7 +17,9 @@ data class VersionDetail(
     val downloads: VersionDownloads,
     val libraries: List<Library>,
     val assetIndex: AssetIndexInfo,
-    val javaVersion: JavaVersionInfo? = null
+    val javaVersion: JavaVersionInfo? = null,
+    val minecraftArguments: String? = null,
+    val arguments: ArgumentsDetail? = null
 )
 
 @Serializable
