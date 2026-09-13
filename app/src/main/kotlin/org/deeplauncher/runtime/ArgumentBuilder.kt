@@ -12,7 +12,8 @@ import java.io.File
 class ArgumentBuilder(
     private val version: VersionDetail,
     gameDir: File,
-    username: String
+    username: String,
+    private val activeFeatures: Map<String, Boolean> = emptyMap()
 ) {
 
     private val placeholders = mapOf(
@@ -74,12 +75,27 @@ class ArgumentBuilder(
         for (ruleElement in rules) {
             val rule = ruleElement as? JsonObject ?: continue
             val action = (rule["action"] as? JsonPrimitive)?.content ?: continue
+            var matches = true
+
             if (rule["os"] is JsonObject) {
                 val osName = ((rule["os"] as JsonObject)["name"] as? JsonPrimitive)?.content
-                if (osName == OsUtils.getOSName()) {
-                    allow = (action == "allow")
+                if (osName != OsUtils.getOSName()) {
+                    matches = false
                 }
-            } else {
+            }
+
+            if (rule["features"] is JsonObject) {
+                val ruleFeatures = rule["features"] as JsonObject
+                for ((featureKey, featureVal) in ruleFeatures) {
+                    val expected = (featureVal as? JsonPrimitive)?.content?.toBoolean() ?: false
+                    val actual = activeFeatures[featureKey] ?: false
+                    if (actual != expected) {
+                        matches = false
+                    }
+                }
+            }
+
+            if (matches) {
                 allow = (action == "allow")
             }
         }
