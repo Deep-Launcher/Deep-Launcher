@@ -43,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.deeplauncher.account.AccountManager
 import org.deeplauncher.instance.InstanceManager
 import org.deeplauncher.network.DownloadEntry
 import org.deeplauncher.network.DownloadTracker
@@ -50,7 +51,8 @@ import org.deeplauncher.version.VersionManager
 
 class App(
     private val versionManager: VersionManager,
-    private val instanceManager: InstanceManager
+    private val instanceManager: InstanceManager,
+    private val accountManager: AccountManager
 ) {
 
     @FXML
@@ -124,6 +126,8 @@ class App(
 
     private val downloadsPage: VBox by lazy { buildDownloadsPage() }
     private val libraryPage: VBox by lazy { buildLibraryPage() }
+    private val accountsPage: VBox by lazy { buildAccountsPage() }
+    private var accountsList: VBox? = null
     private var downloadsVisible = false
 
     @FXML
@@ -374,6 +378,7 @@ class App(
     private fun select(button: Button) {
         if (button !== currentNav) {
             navButtons.forEach { it.pseudoClassStateChanged(SELECTED, it === button) }
+            accountBtn.pseudoClassStateChanged(SELECTED, button === accountBtn)
             currentNav = button
         }
     }
@@ -582,6 +587,18 @@ class App(
         button: Button? = null
     ) {
         if (button?.isDisable == true) return
+
+        val account = accountManager.getActiveAccount()
+        if (account == null) {
+            Alert(Alert.AlertType.INFORMATION).apply {
+                title = "Account required"
+                headerText = "No account selected"
+                contentText = "Go to Accounts and create or select an account before playing."
+                initOwner(stage())
+            }.show()
+            return
+        }
+
         val label = button?.takeIf { !it.text.isNullOrEmpty() }
         val labelText = label?.text
         button?.isDisable = true
@@ -591,7 +608,7 @@ class App(
         scope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    instanceManager.launchInstance(instance.name, DEFAULT_USERNAME)
+                    instanceManager.launchInstance(instance.name, account)
                 }
             } catch (e: Exception) {
                 Platform.runLater { showLaunchError(instance, e) }
@@ -649,11 +666,157 @@ class App(
         }
     }
 
+    private fun buildAccountsPage(): VBox {
+        val header = VBox(
+            Label("Accounts").apply { styleClass.setAll("lib-title") },
+            Label("Offline accounts used to join the game.").apply { styleClass.setAll("lib-sub") }
+        ).apply { spacing = 2.0 }
+
+        val listBox = VBox().apply { styleClass.setAll("acc-list") }
+        accountsList = listBox
+
+        val nickField = TextField().apply {
+            styleClass.setAll("acc-field")
+            promptText = "Offline nickname"
+        }
+
+        val status = Label().apply { styleClass.setAll("acc-status") }
+
+        val addBtn = Button("Add Account").apply {
+            styleClass.setAll("acc-add")
+            setOnAction { addAccount(nickField, status) }
+        }
+        nickField.setOnAction { addBtn.fire() }
+
+        val form = HBox(nickField, addBtn).apply { styleClass.setAll("acc-form") }
+
+        return VBox(header, listBox, form, status).apply {
+            styleClass.setAll("acc-page")
+        }
+    }
+
+    private fun refreshAccounts() {
+        val accounts = accountManager.listAccounts()
+        val active = accountManager.getActiveAccount()
+
+        (accountsPage.children[0] as VBox).let { header ->
+            (header.children[1] as Label).text =
+                if (accounts.isEmpty()) "Offline accounts used to join the game."
+                else "${accounts.size} account(s) · active: ${active?.username ?: "none"}"
+        }
+
+        accountsList?.children?.clear()
+
+        if (accounts.isEmpty()) {
+            accountsList?.children?.add(Label("No accounts yet. Add an offline account below.").apply {
+                styleClass.setAll("lib-empty")
+            })
+            return
+        }
+
+        accounts.forEach { account ->
+            accountsList?.children?.add(accountRow(account, active?.uuid == account.uuid))
+        }
+    }
+
+    private fun accountRow(account: org.deeplauncher.models.Account, isActive: Boolean): HBox {
+        val avatar = Region().apply {
+            styleClass.setAll("acc-avatar")
+            applyTexture(this, account.username)
+        }
+
+        val name = Label(account.username).apply { styleClass.setAll("acc-name") }
+        val uuid = Label(account.uuid).apply { styleClass.setAll("acc-uuid") }
+        val type = Label("OFFLINE").apply { styleClass.setAll("acc-badge") }
+
+        val activeBadge = Label(if (isActive) "ACTIVE" else "NOT ACTIVE").apply {
+            styleClass.setAll("acc-badge")
+            if (isActive) styleClass.add("acc-badge-active")
+        }
+
+        val select = Button().apply {
+            styleClass.setAll("lib-fav")
+            isFocusTraversable = false
+            graphic = SVGPath().apply {
+                styleClass.setAll("lib-fav-glyph")
+                content = "M5,12l5,5L20,7"
+            }
+            setOnAction {
+                accountManager.selectAccount(account.uuid)
+                refreshAccounts()
+            }
+        }
+
+        val delete = Button().apply {
+            styleClass.setAll("lib-fav")
+            isFocusTraversable = false
+            graphic = SVGPath().apply {
+                styleClass.setAll("lib-fav-glyph")
+                content = "M2,6h20M9,6V3h6v3M6,6h12v16H6zM10,10v6M14,10v6"
+            }
+            setOnAction { confirmDeleteAccount(account) }
+        }
+
+        installPop(select, hoverScale = 1.12, pressScale = 0.88)
+        installPop(delete, hoverScale = 1.12, pressScale = 0.88)
+
+        val actions = HBox(select, delete).apply { styleClass.setAll("lib-actions") }
+
+        return HBox(
+            avatar,
+            VBox(name, HBox(uuid, type).apply { spacing = 8.0 }).apply { spacing = 4.0 },
+            Region().apply { HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS) },
+            activeBadge,
+            actions
+        ).apply {
+            styleClass.setAll("acc-item")
+            pseudoClassStateChanged(SELECTED, isActive)
+        }
+    }
+
+    private fun addAccount(nickField: TextField, status: Label) {
+        val nick = nickField.text.trim()
+        if (nick.isEmpty()) {
+            status.text = "Nickname cannot be empty."
+            return
+        }
+        try {
+            val account = accountManager.createAccount(nick)
+            nickField.text = ""
+            status.text = "Account '${account.username}' created."
+            refreshAccounts()
+        } catch (e: IllegalArgumentException) {
+            status.text = e.message
+        }
+    }
+
+    private fun confirmDeleteAccount(account: org.deeplauncher.models.Account) {
+        val alert = Alert(Alert.AlertType.CONFIRMATION).apply {
+            title = "Delete account"
+            headerText = "Delete ${account.username}?"
+            contentText = "This account will be removed from the launcher."
+            initOwner(stage())
+            alertType = Alert.AlertType.CONFIRMATION
+            buttonTypes.setAll(ButtonType.OK, ButtonType.CANCEL)
+        }
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            scope.launch {
+                withContext(Dispatchers.IO) { accountManager.deleteAccount(account.uuid) }
+                if (mainScroll.content === accountsPage) refreshAccounts()
+            }
+        }
+    }
+
     @FXML
     fun onSettingsClicked() = showComingSoon("Settings")
 
     @FXML
-    fun onAccountClicked() = showComingSoon("Account")
+    fun onAccountClicked() {
+        select(accountBtn)
+        downloadsVisible = false
+        switchPage(accountsPage)
+        refreshAccounts()
+    }
 
     private fun showComingSoon(feature: String) {
         val alert = Alert(Alert.AlertType.INFORMATION).apply {
@@ -813,7 +976,6 @@ class App(
 
     private companion object {
         val SELECTED = PseudoClass.getPseudoClass("selected")
-        const val DEFAULT_USERNAME = "Player"
         const val MAX_QUICK_PLAY = 7
     }
 }

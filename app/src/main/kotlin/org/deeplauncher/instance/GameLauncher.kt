@@ -1,6 +1,7 @@
 package org.deeplauncher.instance
 
 import org.deeplauncher.core.LauncherFiles
+import org.deeplauncher.models.Account
 import org.deeplauncher.models.VersionDetail
 import org.deeplauncher.runtime.RuntimeManager
 import java.io.File
@@ -12,7 +13,7 @@ class GameLauncher(
         instanceDir: File,
         versionDetail: VersionDetail,
         javaExecutablePath: String,
-        username: String
+        account: Account
     ) {
         val separator = File.pathSeparator
         val libraries = versionDetail.libraries
@@ -23,7 +24,7 @@ class GameLauncher(
         val classPath = (libraries + clientJar).joinToString(separator)
         val nativesDir = LauncherFiles.getNativesDir(versionDetail.id)
 
-        val gameArgs = runtimeManager.buildGameArguments(versionDetail, instanceDir, username)
+        val gameArgs = runtimeManager.buildGameArguments(versionDetail, instanceDir, account.username, account.uuid)
 
         val command = mutableListOf<String>().apply {
             add(javaExecutablePath)

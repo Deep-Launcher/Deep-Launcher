@@ -3,6 +3,7 @@ package org.deeplauncher.instance
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import org.deeplauncher.core.LauncherFiles
+import org.deeplauncher.models.Account
 import org.deeplauncher.models.MinecraftInstance
 import org.deeplauncher.models.VersionDetail
 import org.deeplauncher.network.client
@@ -17,7 +18,7 @@ class InstanceManager(
     private val repository = InstanceRepository()
     private val gameLauncher = GameLauncher(runtimeManager)
 
-    suspend fun launchInstance(name: String, username: String) {
+    suspend fun launchInstance(name: String, account: Account) {
         val instanceDir = repository.getInstanceDir(name)
         val instanceConfig = repository.loadInstance(name) ?: return
 
@@ -39,7 +40,7 @@ class InstanceManager(
             runtimeManager.downloadAndExtractJava(requiredJavaVersion, runtimeDir)
         }
 
-        gameLauncher.launchProcess(instanceDir, versionDetail, javaExecutablePath, username)
+        gameLauncher.launchProcess(instanceDir, versionDetail, javaExecutablePath, account)
     }
 
     suspend fun createInstance(

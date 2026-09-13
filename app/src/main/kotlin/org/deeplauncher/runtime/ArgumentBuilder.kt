@@ -13,6 +13,7 @@ class ArgumentBuilder(
     private val version: VersionDetail,
     gameDir: File,
     username: String,
+    uuid: String,
     private val activeFeatures: Map<String, Boolean> = emptyMap()
 ) {
 
@@ -22,9 +23,10 @@ class ArgumentBuilder(
         "game_directory" to gameDir.absolutePath,
         "assets_root" to LauncherFiles.assetsDir.absolutePath,
         "assets_index_name" to (version.assetIndex.id),
-        "auth_uuid" to "00000000-0000-0000-0000-000000000000",
-        "--accessToken" to "0",
-        "--userType" to "msa",
+        "auth_uuid" to uuid,
+        "auth_access_token" to uuid,
+        "--accessToken" to uuid,
+        "--userType" to "legacy",
         "user_properties" to "{}"
     )
 

@@ -705,6 +705,115 @@
     -fx-background-insets: 0;
 }
 
+/* ============ ACCOUNT PAGE ============ */
+.acc-page {
+    -fx-padding: 26 28 26 28;
+    -fx-spacing: 18;
+}
+
+.acc-list {
+    -fx-spacing: 10;
+}
+
+.acc-item {
+    -fx-background-color: #031016;
+    -fx-background-radius: 10;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 10;
+    -fx-padding: 12 14 12 14;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 14;
+}
+
+.acc-item:hover {
+    -fx-background-color: #03151c;
+    -fx-border-color: #0a2430;
+}
+
+.acc-item:selected {
+    -fx-border-color: #61c3cb;
+    -fx-effect: dropshadow(gaussian, rgba(97,195,203,0.18), 12, 0, 0, 0);
+}
+
+.acc-avatar {
+    -fx-min-width: 38;
+    -fx-min-height: 38;
+    -fx-pref-width: 38;
+    -fx-pref-height: 38;
+    -fx-max-width: 38;
+    -fx-max-height: 38;
+    -fx-background-color: linear-gradient(to bottom right, #0d3138, #031116);
+    -fx-background-radius: 8;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 8;
+}
+
+.acc-name {
+    -fx-font-family: 'Inter Semibold';
+    -fx-font-size: 13.5;
+    -fx-text-fill: #d7e4e0;
+}
+
+.acc-uuid {
+    -fx-font-size: 11;
+    -fx-text-fill: #7fa4a0;
+}
+
+.acc-badge {
+    -fx-font-family: 'Inter Bold';
+    -fx-font-size: 10;
+    -fx-text-fill: #9dbab5;
+    -fx-background-color: #071f29;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 2 8 2 8;
+}
+
+.acc-badge-active {
+    -fx-text-fill: #020c12;
+    -fx-background-color: #61c3cb;
+    -fx-border-color: transparent;
+}
+
+.acc-form {
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 10;
+    -fx-padding: 4 0 0 0;
+}
+
+.acc-field {
+    -fx-background-color: #071f29;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+    -fx-text-fill: #d7e4e0;
+    -fx-font-size: 13;
+    -fx-prompt-text-fill: #5a7d7a;
+    -fx-pref-width: 280;
+}
+
+.acc-add {
+    -fx-font-family: 'Inter Semibold';
+    -fx-background-color: #61c3cb;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-text-fill: #020c12;
+    -fx-font-size: 12.5;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+}
+
+.acc-add:hover {
+    -fx-background-color: #7ad3d9;
+}
+
+.acc-status {
+    -fx-font-size: 11.5;
+    -fx-text-fill: #7fa4a0;
+}
+
 /* ============ TOOLTIP ============ */
 .tooltip {
     -fx-background-color: #020c12;
