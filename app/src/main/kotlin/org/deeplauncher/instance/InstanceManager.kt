@@ -15,7 +15,7 @@ class InstanceManager(
     private val runtimeManager: RuntimeManager
 ) {
     private val repository = InstanceRepository()
-    private val gameLauncher = GameLauncher()
+    private val gameLauncher = GameLauncher(runtimeManager)
 
     suspend fun launchInstance(name: String, username: String) {
         val instanceDir = repository.getInstanceDir(name)
