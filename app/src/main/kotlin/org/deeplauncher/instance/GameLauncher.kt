@@ -2,9 +2,12 @@ package org.deeplauncher.instance
 
 import org.deeplauncher.core.LauncherFiles
 import org.deeplauncher.models.VersionDetail
+import org.deeplauncher.runtime.RuntimeManager
 import java.io.File
 
-class GameLauncher {
+class GameLauncher(
+    private val runtimeManager: RuntimeManager
+) {
     fun launchProcess(
         instanceDir: File,
         versionDetail: VersionDetail,
@@ -20,22 +23,17 @@ class GameLauncher {
         val classPath = (libraries + clientJar).joinToString(separator)
         val nativesDir = LauncherFiles.getNativesDir(versionDetail.id)
 
-        val command = mutableListOf(
-            javaExecutablePath,
-            "-Xmx2G",
-            "-Djava.library.path=${nativesDir.absolutePath}",
-            "-cp", classPath,
-            versionDetail.mainClass,
+        val gameArgs = runtimeManager.buildGameArguments(versionDetail, instanceDir, username)
 
-            "--username", username,
-            "--version", versionDetail.id,
-            "--gameDir", instanceDir.absolutePath,
-            "--assetsDir", LauncherFiles.assetsDir.absolutePath,
-            "--assetIndex", versionDetail.assetIndex.id,
-            "--uuid", "00000000-0000-0000-0000-000000000000",
-            "--accessToken", "0",
-            "--userType", "msa"
-        )
+        val command = mutableListOf<String>().apply {
+            add(javaExecutablePath)
+            add("-Xmx4G")
+            add("-Djava.library.path=${nativesDir.absolutePath}")
+            add("-cp")
+            add(classPath)
+            add(versionDetail.mainClass)
+            addAll(gameArgs)
+        }
 
         val process = ProcessBuilder(command)
             .directory(instanceDir)

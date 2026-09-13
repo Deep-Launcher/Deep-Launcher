@@ -4,12 +4,16 @@ import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.deeplauncher.core.Endpoints
+import org.deeplauncher.models.VersionDetail
 import org.deeplauncher.network.Downloader
 import org.deeplauncher.utils.ArchiveUtils
 import org.deeplauncher.utils.OsUtils
 import java.io.File
 
 class RuntimeManager(private val downloader: Downloader) {
+    fun buildGameArguments(version: VersionDetail, gameDir: File, username: String): List<String> {
+        return ArgumentBuilder(version, gameDir, username).buildGameArguments()
+    }
 
     suspend fun downloadAndExtractJava(
         javaVersion: Int,
