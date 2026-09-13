@@ -4,6 +4,7 @@ import javafx.animation.FadeTransition
 import javafx.animation.Interpolator
 import javafx.animation.KeyFrame
 import javafx.animation.ParallelTransition
+import javafx.animation.PauseTransition
 import javafx.animation.ScaleTransition
 import javafx.animation.Timeline
 import javafx.animation.TranslateTransition
@@ -14,22 +15,28 @@ import javafx.fxml.FXML
 import javafx.collections.ListChangeListener
 import javafx.geometry.Insets
 import javafx.geometry.Pos
+import javafx.scene.CacheHint
 import javafx.scene.Node
 import javafx.scene.Cursor
 import javafx.scene.Scene
 import javafx.scene.control.Alert
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
+import javafx.scene.control.CheckBox
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ProgressBar
 import javafx.scene.control.ScrollPane
+import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.scene.control.Tooltip
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.FlowPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
+import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
 import javafx.scene.shape.Polyline
 import javafx.scene.shape.SVGPath
@@ -44,6 +51,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.deeplauncher.account.AccountManager
+import org.deeplauncher.core.LauncherFiles
 import org.deeplauncher.instance.InstanceManager
 import org.deeplauncher.network.DownloadEntry
 import org.deeplauncher.network.DownloadTracker
@@ -124,11 +132,36 @@ class App(
     private var searchField: TextField? = null
     private var cardsBox: FlowPane? = null
 
+    // Caches populated off the FX thread, pages read from these instead of hitting disk.
+    private var instancesCache: List<org.deeplauncher.models.MinecraftInstance> = emptyList()
+    private var accountsCache: List<org.deeplauncher.models.Account> = emptyList()
+    private var librarySearchDebounce: PauseTransition? = null
+
     private val downloadsPage: VBox by lazy { buildDownloadsPage() }
     private val libraryPage: VBox by lazy { buildLibraryPage() }
     private val accountsPage: VBox by lazy { buildAccountsPage() }
     private var accountsList: VBox? = null
     private var downloadsVisible = false
+
+    // Shared popup for instance hover cards, avoids creating a new Popup on every refresh.
+    private val instancePopupNameLabel = Label().apply {
+        style = "-fx-font-family: 'Teko Semibold'; -fx-font-size: 17; -fx-text-fill: #d7e4e0;"
+    }
+    private val instancePopupVersionLabel = Label().apply {
+        style = "-fx-font-family: 'Inter'; -fx-font-size: 10.5; -fx-text-fill: #9dbab5; " +
+                "-fx-background-color: #071f29; -fx-border-color: #0a2731; -fx-border-radius: 9; " +
+                "-fx-background-radius: 9; -fx-padding: 2 8 2 8;"
+    }
+    private val instancePopupCard = VBox(instancePopupNameLabel, instancePopupVersionLabel).apply {
+        spacing = 3.0
+        style = "-fx-background-color: #020c12; -fx-background-radius: 10; -fx-border-color: #0a2430; " +
+                "-fx-border-radius: 10; -fx-padding: 9 12 9 12; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 12, 0, 0, 4);"
+    }
+    private val instancePopup = Popup().apply {
+        content.add(instancePopupCard)
+        isAutoHide = false
+    }
 
     @FXML
     private fun initialize() {
@@ -160,9 +193,12 @@ class App(
             if (downloadsVisible) refreshDownloadsBody()
         })
 
-        refreshThumbs()
-        refreshHero()
-        refreshQuickPlay()
+        // Pré-carrega as outras páginas e busca instâncias/contas fora da FX thread.
+        downloadsPage
+        libraryPage
+        accountsPage
+        reloadInstances()
+        reloadAccounts()
     }
 
     // EFFECTS
@@ -178,6 +214,8 @@ class App(
 
     /** Subtle scale pop */
     private fun installPop(node: Node, hoverScale: Double = 1.05, pressScale: Double = 0.93) {
+        node.isCache = true
+        node.cacheHint = CacheHint.SPEED
         node.onMouseEntered = EventHandler { animateScale(node, hoverScale, 140.0) }
         node.onMouseExited = EventHandler { animateScale(node, 1.0, 160.0) }
         node.onMousePressed = EventHandler { animateScale(node, pressScale, 70.0) }
@@ -186,6 +224,8 @@ class App(
 
     /** Gentle vertical lift */
     private fun installLift(node: Node, liftY: Double = -4.0, ms: Double = 160.0) {
+        node.isCache = true
+        node.cacheHint = CacheHint.SPEED
         node.onMouseEntered = EventHandler {
             TranslateTransition(Duration.millis(ms), node).apply { toY = liftY; interpolator = Interpolator.EASE_OUT; play() }
         }
@@ -255,60 +295,63 @@ class App(
         }
     }
 
+    /** Reuses a single shared Popup instead of building a new one per instance/per refresh. */
     private fun installInstanceCardPopup(host: Region, instance: org.deeplauncher.models.MinecraftInstance) {
-        val name = Label(instance.name).apply {
-            style = "-fx-font-family: 'Teko Semibold'; -fx-font-size: 17; -fx-text-fill: #d7e4e0;"
-        }
-        val version = Label(instance.version).apply {
-            style = "-fx-font-family: 'Inter'; -fx-font-size: 10.5; -fx-text-fill: #9dbab5; " +
-                    "-fx-background-color: #071f29; -fx-border-color: #0a2731; -fx-border-radius: 9; " +
-                    "-fx-background-radius: 9; -fx-padding: 2 8 2 8;"
-        }
-        val card = VBox(name, version).apply {
-            spacing = 3.0
-            style = "-fx-background-color: #020c12; -fx-background-radius: 10; -fx-border-color: #0a2430; " +
-                    "-fx-border-radius: 10; -fx-padding: 9 12 9 12; " +
-                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 12, 0, 0, 4);"
-        }
-        val popup = Popup().apply {
-            content.add(card)
-            isAutoHide = false
-        }
         host.onMouseEntered = EventHandler<MouseEvent> {
             animateScale(host, 1.06, 140.0)
+            instancePopupNameLabel.text = instance.name
+            instancePopupVersionLabel.text = instance.version
             val screen = host.localToScreen(0.0, 0.0) ?: return@EventHandler
-            popup.show(host.scene.window, screen.x + host.width + 8, screen.y - 2)
+            instancePopup.show(host.scene.window, screen.x + host.width + 8, screen.y - 2)
         }
         host.onMouseExited = EventHandler {
             animateScale(host, 1.0, 160.0)
-            popup.hide()
+            instancePopup.hide()
+        }
+    }
+
+    // ============ CACHE RELOAD (off the FX thread) ============
+
+    private fun reloadInstances(onLoaded: (() -> Unit)? = null) {
+        scope.launch {
+            instancesCache = withContext(Dispatchers.IO) { instanceManager.listInstances() }
+            refreshHero()
+            refreshQuickPlay()
+            refreshThumbs()
+            if (mainScroll.content === libraryPage) refreshLibraryBody()
+            onLoaded?.invoke()
+        }
+    }
+
+    private fun reloadAccounts(onLoaded: (() -> Unit)? = null) {
+        scope.launch {
+            accountsCache = withContext(Dispatchers.IO) { accountManager.listAccounts() }
+            if (mainScroll.content === accountsPage) refreshAccounts()
+            onLoaded?.invoke()
         }
     }
 
     private fun refreshThumbs() {
-        scope.launch {
-            val instances = withContext(Dispatchers.IO) { instanceManager.listInstances() }
-            val thumbs = listOf(thumb1, thumb2, thumb3)
-            thumbs.forEachIndexed { index, thumb ->
-                val instance = instances.getOrNull(index)
-                if (instance != null) {
-                    applyTexture(thumb, instance.name)
-                    installInstanceCardPopup(thumb, instance)
-                    thumb.cursor = Cursor.HAND
-                    thumb.setOnAction { showLibrary(instance.name) }
-                } else {
-                    thumb.styleClass.removeIf { it.startsWith("tex-") }
-                    thumb.onMouseEntered = null
-                    thumb.onMouseExited = null
-                    thumb.cursor = Cursor.DEFAULT
-                    thumb.setOnAction(null)
-                }
+        val thumbs = listOf(thumb1, thumb2, thumb3)
+        thumbs.forEachIndexed { index, thumb ->
+            val instance = instancesCache.getOrNull(index)
+            if (instance != null) {
+                applyTexture(thumb, instance.name)
+                installInstanceCardPopup(thumb, instance)
+                thumb.cursor = Cursor.HAND
+                thumb.setOnAction { showLibrary(instance.name) }
+            } else {
+                thumb.styleClass.removeIf { it.startsWith("tex-") }
+                thumb.onMouseEntered = null
+                thumb.onMouseExited = null
+                thumb.cursor = Cursor.DEFAULT
+                thumb.setOnAction(null)
             }
         }
     }
 
     private fun refreshHero() {
-        val instances = instanceManager.listInstances()
+        val instances = instancesCache
         if (instances.isEmpty()) {
             heroTitle.text = "Welcome to Deep Launcher"
             heroSub.text = "Create your first instance and press play."
@@ -320,13 +363,10 @@ class App(
     }
 
     private fun refreshQuickPlay() {
-        scope.launch {
-            val instances = withContext(Dispatchers.IO) { instanceManager.listInstances() }
-            val tiles = quickThumbs.children
-            tiles.clear()
-            instances.take(MAX_QUICK_PLAY).forEach { tiles.add(quickTile(it)) }
-            repeat((MAX_QUICK_PLAY - instances.size).coerceAtLeast(0)) { tiles.add(emptyTile()) }
-        }
+        val tiles = quickThumbs.children
+        tiles.clear()
+        instancesCache.take(MAX_QUICK_PLAY).forEach { tiles.add(quickTile(it)) }
+        repeat((MAX_QUICK_PLAY - instancesCache.size).coerceAtLeast(0)) { tiles.add(emptyTile()) }
     }
 
     private fun quickTile(instance: org.deeplauncher.models.MinecraftInstance): Button {
@@ -452,7 +492,7 @@ class App(
         val search = TextField().apply {
             styleClass.setAll("lib-search")
             promptText = "Search instances…"
-            textProperty().addListener { _, _, _ -> refreshLibraryBody() }
+            textProperty().addListener { _, _, _ -> debounceLibrarySearch() }
         }
         searchField = search
 
@@ -478,6 +518,15 @@ class App(
         return page
     }
 
+    /** Delays the search refresh until typing pauses, instead of recomputing on every keystroke. */
+    private fun debounceLibrarySearch() {
+        librarySearchDebounce?.stop()
+        librarySearchDebounce = PauseTransition(Duration.millis(250.0)).apply {
+            setOnFinished { refreshLibraryBody() }
+            play()
+        }
+    }
+
     private fun showLibrary(highlightName: String? = null) {
         select(navLibrary)
         downloadsVisible = false
@@ -488,7 +537,7 @@ class App(
     }
 
     private fun refreshLibraryBody() {
-        val instances = instanceManager.listInstances()
+        val instances = instancesCache
         val filter = searchField?.text?.trim()?.lowercase().orEmpty()
 
         (libraryPage.children[0] as HBox).let { header ->
@@ -644,10 +693,7 @@ class App(
             scope.launch {
                 withContext(Dispatchers.IO) { instanceManager.deleteInstance(instance.name) }
                 favorites.remove(instance.name)
-                refreshThumbs()
-                refreshHero()
-                refreshQuickPlay()
-                if (mainScroll.content === libraryPage) refreshLibraryBody()
+                reloadInstances()
             }
         }
     }
@@ -696,7 +742,7 @@ class App(
     }
 
     private fun refreshAccounts() {
-        val accounts = accountManager.listAccounts()
+        val accounts = accountsCache
         val active = accountManager.getActiveAccount()
 
         (accountsPage.children[0] as VBox).let { header ->
@@ -780,13 +826,15 @@ class App(
             status.text = "Nickname cannot be empty."
             return
         }
-        try {
-            val account = accountManager.createAccount(nick)
-            nickField.text = ""
-            status.text = "Account '${account.username}' created."
-            refreshAccounts()
-        } catch (e: IllegalArgumentException) {
-            status.text = e.message
+        scope.launch {
+            try {
+                val account = withContext(Dispatchers.IO) { accountManager.createAccount(nick) }
+                nickField.text = ""
+                status.text = "Account '${account.username}' created."
+                reloadAccounts()
+            } catch (e: IllegalArgumentException) {
+                status.text = e.message
+            }
         }
     }
 
@@ -802,13 +850,276 @@ class App(
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             scope.launch {
                 withContext(Dispatchers.IO) { accountManager.deleteAccount(account.uuid) }
-                if (mainScroll.content === accountsPage) refreshAccounts()
+                reloadAccounts()
             }
         }
     }
 
+    private val settingsOverlay: StackPane by lazy { buildSettingsOverlay() }
+    private val settingsPanel: VBox by lazy { buildSettingsPanel() }
+    private var settingsEscapeWired = false
+
     @FXML
-    fun onSettingsClicked() = showComingSoon("Settings")
+    fun onSettingsClicked() = openSettings()
+
+    private fun openSettings() {
+        val scene = stage()?.scene ?: return
+        val root = scene.root as? StackPane ?: return
+
+        if (settingsOverlay.parent !== root) root.children.add(settingsOverlay)
+        settingsOverlay.isVisible = true
+        settingsOverlay.isManaged = true
+
+        if (!settingsEscapeWired) {
+            settingsEscapeWired = true
+            scene.addEventFilter(KeyEvent.KEY_PRESSED) { event ->
+                if (settingsOverlay.isVisible && event.code == KeyCode.ESCAPE) {
+                    closeSettings()
+                    event.consume()
+                }
+            }
+        }
+
+        val dim = FadeTransition(Duration.millis(170.0), settingsOverlay).apply {
+            fromValue = 0.0
+            toValue = 1.0
+        }
+        dim.play()
+    }
+
+    private fun closeSettings() {
+        settingsOverlay.isVisible = false
+        settingsOverlay.isManaged = false
+    }
+
+    private fun buildSettingsOverlay(): StackPane {
+        val backdrop = Region().apply {
+            styleClass.setAll("ov-backdrop")
+            onMouseClicked = EventHandler { closeSettings() }
+        }
+        val overlay = StackPane(backdrop, settingsPanel).apply {
+            StackPane.setAlignment(settingsPanel, Pos.CENTER)
+            isVisible = false
+            isManaged = false
+        }
+        return overlay
+    }
+
+    private fun buildSettingsPanel(): VBox {
+        // The SVGPath's raw shape bounds are slightly asymmetric with its stroke, which used to
+        // throw off centering inside the button. Wrapping it in a fixed-size StackPane and
+        // centering *that* instead fixes it for good.
+        val closeGlyph = SVGPath().apply {
+            styleClass.setAll("win-glyph")
+            content = "M0,0l12,12M12,0L0,12"
+        }
+        val closeGraphic = StackPane(closeGlyph).apply {
+            styleClass.setAll("ov-close-glyph-box")
+        }
+
+        val closeBtn = Button().apply {
+            styleClass.setAll("ov-close")
+            isFocusTraversable = false
+            graphic = closeGraphic
+            setOnAction { closeSettings() }
+            installPop(this, hoverScale = 1.1, pressScale = 0.92)
+        }
+
+        val header = HBox(
+            Label("Settings").apply { styleClass.setAll("ov-title") },
+            Region().apply { HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS) },
+            closeBtn
+        ).apply {
+            styleClass.setAll("ov-header")
+            alignment = Pos.CENTER_LEFT
+        }
+
+        val content = VBox().apply { styleClass.setAll("set-content") }
+
+        val navGeneral = sectionButton("General")
+        val navDefaults = sectionButton("Default Options")
+        val navDownloads = sectionButton("Downloads")
+        val navAbout = sectionButton("About")
+        val navButtons = listOf(navGeneral, navDefaults, navDownloads, navAbout)
+        val pages = listOf(
+            buildGeneralSection(),
+            buildDefaultOptionsSection(),
+            buildDownloadsSection(),
+            buildAboutSection()
+        )
+
+        fun show(button: Button, page: VBox) {
+            navButtons.forEach { it.pseudoClassStateChanged(SELECTED, it === button) }
+            content.children.clear()
+            content.children.add(page)
+            page.opacity = 0.0
+            FadeTransition(Duration.millis(160.0), page).apply { toValue = 1.0; play() }
+        }
+
+        navButtons.forEachIndexed { index, button ->
+            button.setOnAction { show(button, pages[index]) }
+        }
+        show(navGeneral, pages[0])
+
+        val sidebar = VBox().apply {
+            styleClass.setAll("set-sidebar")
+            alignment = Pos.TOP_CENTER
+            children.addAll(navButtons)
+        }
+
+        val body = HBox(sidebar, content).apply {
+            styleClass.setAll("set-body")
+            alignment = Pos.TOP_LEFT
+        }
+        VBox.setVgrow(body, javafx.scene.layout.Priority.ALWAYS)
+        HBox.setHgrow(content, javafx.scene.layout.Priority.ALWAYS)
+
+        return VBox(header, body).apply {
+            styleClass.setAll("ov-panel")
+            prefWidth = 900.0
+            prefHeight = 560.0
+            maxWidth = 900.0
+            maxHeight = 560.0
+            minWidth = 680.0
+            minHeight = 440.0
+        }
+    }
+
+    private fun sectionButton(label: String): Button {
+        return Button(label).apply {
+            styleClass.setAll("set-nav")
+            isFocusTraversable = false
+            maxWidth = Double.MAX_VALUE
+            alignment = Pos.CENTER_LEFT
+        }
+    }
+
+    private fun settingRow(labelText: String, control: Node): HBox {
+        return HBox(
+            Label(labelText).apply { styleClass.setAll("set-label") },
+            Region().apply { HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS) },
+            control
+        ).apply {
+            styleClass.setAll("set-row")
+            alignment = Pos.CENTER_LEFT
+            spacing = 12.0
+        }
+    }
+
+    private fun buildGeneralSection(): VBox {
+        val language = ComboBox<String>().apply {
+            styleClass.setAll("dialog-combo")
+            items.addAll("English", "Português do Brasil")
+            value = "English"
+        }
+        val animations = CheckBox("Interface animations").apply {
+            styleClass.setAll("set-check")
+            isSelected = true
+        }
+        val notifications = CheckBox("Notifications").apply {
+            styleClass.setAll("set-check")
+            isSelected = true
+        }
+
+        return VBox(
+            Label("General").apply { styleClass.setAll("set-title") },
+            Label("Appearance and language preferences.").apply { styleClass.setAll("set-sub") },
+            settingRow("Language", language),
+            settingRow("Animations", animations),
+            settingRow("Notifications", notifications)
+        ).apply {
+            styleClass.setAll("set-page")
+            spacing = 14.0
+        }
+    }
+
+    private fun buildDefaultOptionsSection(): VBox {
+        val jvm = TextArea(" -Xmx2G\n -XX:+UseG1GC").apply {
+            styleClass.setAll("set-textarea")
+            prefRowCount = 4
+            prefColumnCount = 36
+        }
+        val maxRam = ComboBox<String>().apply {
+            styleClass.setAll("dialog-combo")
+            items.addAll((1..8).map { "$it GB" })
+            value = "4 GB"
+        }
+        val javaPath = TextField().apply {
+            styleClass.setAll("dialog-field")
+            promptText = "Auto detect"
+        }
+
+        return VBox(
+            Label("Default Options").apply { styleClass.setAll("set-title") },
+            Label("Memory and JVM settings applied to every instance.").apply { styleClass.setAll("set-sub") },
+            Label("JVM arguments").apply { styleClass.setAll("set-label") },
+            jvm,
+            settingRow("Max memory", maxRam),
+            settingRow("Java executable", javaPath)
+        ).apply {
+            styleClass.setAll("set-page")
+            spacing = 14.0
+        }
+    }
+
+    private fun buildDownloadsSection(): VBox {
+        val parallel = ComboBox<String>().apply {
+            styleClass.setAll("dialog-combo")
+            items.addAll((1..6).map { "$it parallel" })
+            value = "4 parallel"
+        }
+        val resume = CheckBox("Resume interrupted downloads").apply {
+            styleClass.setAll("set-check")
+            isSelected = true
+        }
+        val dir = TextField().apply {
+            styleClass.setAll("dialog-field")
+            isEditable = false
+            text = LauncherFiles.rootDir.absolutePath
+        }
+
+        return VBox(
+            Label("Downloads").apply { styleClass.setAll("set-title") },
+            Label("How files are fetched for your instances.").apply { styleClass.setAll("set-sub") },
+            settingRow("Parallel downloads", parallel),
+            settingRow("Resume", resume),
+            settingRow("Storage folder", dir)
+        ).apply {
+            styleClass.setAll("set-page")
+            spacing = 14.0
+        }
+    }
+
+    private fun buildAboutSection(): VBox {
+        val brand = Region().apply {
+            styleClass.setAll("brand-mark-sculk")
+        }
+        return VBox(
+            HBox(
+                brand,
+                VBox(
+                    Label("Deep Launcher").apply { styleClass.setAll("set-title") },
+                    Label("Version 0.1").apply { styleClass.setAll("set-sub") }
+                ).apply {
+                    spacing = 2.0
+                    alignment = Pos.CENTER_LEFT
+                }
+            ).apply {
+                styleClass.setAll("set-row")
+                alignment = Pos.CENTER_LEFT
+                spacing = 12.0
+            },
+            Label("A modern Minecraft launcher built with JavaFX and Kotlin.").apply {
+                styleClass.setAll("set-muted")
+            },
+            Label("Join the community on Discord.").apply {
+                styleClass.setAll("set-muted")
+            }
+        ).apply {
+            styleClass.setAll("set-page")
+            spacing = 14.0
+        }
+    }
 
     @FXML
     fun onAccountClicked() {
@@ -925,10 +1236,7 @@ class App(
                             }
                         }
                         dialog.close()
-                        refreshThumbs()
-                        refreshHero()
-                        refreshQuickPlay()
-                        if (mainScroll.content === libraryPage) refreshLibraryBody()
+                        reloadInstances()
                     } catch (e: Exception) {
                         isDisable = false
                         text = "Create"

@@ -814,6 +814,177 @@
     -fx-text-fill: #7fa4a0;
 }
 
+/* ============ SETTINGS OVERLAY ============ */
+.ov-backdrop {
+    -fx-background-color: rgba(2, 8, 10, 0.62);
+}
+
+.ov-panel {
+    -fx-background-color: #020c12;
+    -fx-background-radius: 14;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 50, 0, 0, 8);
+}
+
+.ov-header {
+    -fx-background-color: #031016;
+    -fx-background-radius: 14 14 0 0;
+    -fx-border-color: transparent transparent #0a2731 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 18 12 20;
+    -fx-spacing: 10;
+}
+
+.ov-title {
+    -fx-font-family: 'Teko Semibold';
+    -fx-font-size: 24;
+    -fx-text-fill: #d7e4e0;
+}
+
+.ov-close {
+    -fx-background-color: transparent;
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-pref-width: 28;
+    -fx-pref-height: 28;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+    -fx-content-display: GRAPHIC_ONLY;
+}
+
+.ov-close:hover {
+    -fx-background-color: #071f29;
+    -fx-background-radius: 6;
+}
+
+.ov-close-glyph-box {
+    -fx-min-width: 12;
+    -fx-min-height: 12;
+    -fx-pref-width: 12;
+    -fx-pref-height: 12;
+    -fx-max-width: 12;
+    -fx-max-height: 12;
+    -fx-alignment: CENTER;
+}
+
+.set-sidebar {
+    -fx-min-width: 172;
+    -fx-pref-width: 172;
+    -fx-max-width: 172;
+    -fx-background-color: #031016;
+    -fx-border-color: transparent #0a2731 transparent transparent;
+    -fx-border-width: 1;
+    -fx-padding: 18 10 18 10;
+    -fx-spacing: 8;
+}
+
+.set-nav {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-text-fill: #9dbab5;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 13;
+    -fx-padding: 9 13 9 13;
+    -fx-cursor: hand;
+}
+
+.set-nav:hover {
+    -fx-background-color: #04151c;
+    -fx-text-fill: #d7e4e0;
+}
+
+.set-nav:selected {
+    -fx-background-color: #61c3cb;
+    -fx-text-fill: #020c12;
+    -fx-font-family: 'Inter Semibold';
+}
+
+.set-body {
+    -fx-padding: 22 26 26 26;
+    -fx-spacing: 22;
+}
+
+.set-content {
+    -fx-min-width: 0;
+    -fx-max-width: 10000;
+}
+
+.set-page {
+    -fx-spacing: 10;
+}
+
+.set-title {
+    -fx-font-family: 'Teko Semibold';
+    -fx-font-size: 26;
+    -fx-text-fill: #d7e4e0;
+}
+
+.set-sub {
+    -fx-font-size: 12.5;
+    -fx-text-fill: #7fa4a0;
+}
+
+.set-muted {
+    -fx-font-size: 12.5;
+    -fx-text-fill: #5a7d7a;
+}
+
+.set-label {
+    -fx-font-size: 12.5;
+    -fx-text-fill: #d7e4e0;
+}
+
+.set-row {
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 12;
+    -fx-padding: 6 0 0 0;
+}
+
+.set-check {
+    -fx-text-fill: #9dbab5;
+    -fx-font-size: 12.5;
+    -fx-cursor: hand;
+}
+
+.set-check .box {
+    -fx-background-color: #071f29;
+    -fx-background-radius: 4;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 4;
+    -fx-padding: 1;
+}
+
+.set-check:selected .box {
+    -fx-background-color: #61c3cb;
+}
+
+.set-check:selected .mark {
+    -fx-background-color: #020c12;
+}
+
+.set-textarea {
+    -fx-background-color: #071f29;
+    -fx-background-radius: 8;
+    -fx-border-color: #0a2731;
+    -fx-border-radius: 8;
+    -fx-text-fill: #d7e4e0;
+    -fx-font-family: 'Inter';
+    -fx-font-size: 12.5;
+    -fx-prompt-text-fill: #5a7d7a;
+}
+
+.set-textarea .content {
+    -fx-background-color: #071f29;
+    -fx-background-radius: 8;
+    -fx-border-color: transparent;
+}
+
+.set-textarea .scroll-pane {
+    -fx-background-color: transparent;
+}
+
 /* ============ TOOLTIP ============ */
 .tooltip {
     -fx-background-color: #020c12;
