@@ -19,6 +19,7 @@ import javafx.scene.Cursor
 import javafx.scene.Scene
 import javafx.scene.control.Alert
 import javafx.scene.control.Button
+import javafx.scene.control.ButtonType
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ProgressBar
@@ -145,7 +146,7 @@ class App(
 
         listOf(thumb1, thumb2, thumb3).forEach { it.isFocusTraversable = false }
 
-        // Efeito 2: pop de hover/click nos botões da UI.
+        // Subtle pop effect on hover/click for UI buttons
         listOf(
             navHome, navDownloads, navLibrary, navFiles,
             addButton, accountBtn, settingsBtn, libraryBtn
@@ -160,7 +161,7 @@ class App(
         refreshQuickPlay()
     }
 
-    // ============ EFEITOS ============
+    // EFFECTS
 
     private fun animateScale(node: Node, target: Double, ms: Double) {
         ScaleTransition(Duration.millis(ms), node).apply {
@@ -171,7 +172,7 @@ class App(
         }
     }
 
-    /** Pop sutil de escala — hover levanta, clique afunda. Bom para botões. */
+    /** Subtle scale pop */
     private fun installPop(node: Node, hoverScale: Double = 1.05, pressScale: Double = 0.93) {
         node.onMouseEntered = EventHandler { animateScale(node, hoverScale, 140.0) }
         node.onMouseExited = EventHandler { animateScale(node, 1.0, 160.0) }
@@ -179,7 +180,7 @@ class App(
         node.onMouseReleased = EventHandler { animateScale(node, hoverScale, 110.0) }
     }
 
-    /** Leve elevação vertical — bom para cards. */
+    /** Gentle vertical lift */
     private fun installLift(node: Node, liftY: Double = -4.0, ms: Double = 160.0) {
         node.onMouseEntered = EventHandler {
             TranslateTransition(Duration.millis(ms), node).apply { toY = liftY; interpolator = Interpolator.EASE_OUT; play() }
@@ -189,7 +190,7 @@ class App(
         }
     }
 
-    /** Tooltip com delay curto, ancorada ao lado do ícone em vez de seguir o mouse. */
+    /** Tooltip with a short delay, anchored to the icon side instead of following the mouse */
     private fun installTip(node: Node, text: String) {
         val tip = Tooltip(text).apply {
             showDelay = Duration.millis(160.0)
@@ -203,7 +204,7 @@ class App(
         node.addEventHandler(MouseEvent.MOUSE_EXITED) { tip.hide() }
     }
 
-    /** Efeito 1: troca de página com fade cruzado, em vez de substituição instantânea. */
+    /** Page switch with a crossfade instead of an instant swap */
     private fun switchPage(page: Region) {
         val current = mainScroll.content as? Region
         if (current === page) return
@@ -224,7 +225,7 @@ class App(
         }
     }
 
-    /** Efeito 3: entrada em cascata para os cards da Library. */
+    /** Cascading entrance for the library cards */
     private fun animateCardEntrance(node: Node, index: Int) {
         node.opacity = 0.0
         node.translateY = 14.0
@@ -256,12 +257,12 @@ class App(
         }
         val version = Label(instance.version).apply {
             style = "-fx-font-family: 'Inter'; -fx-font-size: 10.5; -fx-text-fill: #9dbab5; " +
-                    "-fx-background-color: #0e3a48; -fx-border-color: #123644; -fx-border-radius: 9; " +
+                    "-fx-background-color: #071f29; -fx-border-color: #0a2731; -fx-border-radius: 9; " +
                     "-fx-background-radius: 9; -fx-padding: 2 8 2 8;"
         }
         val card = VBox(name, version).apply {
             spacing = 3.0
-            style = "-fx-background-color: #0a2028; -fx-background-radius: 10; -fx-border-color: #1a4553; " +
+            style = "-fx-background-color: #020c12; -fx-background-radius: 10; -fx-border-color: #0a2430; " +
                     "-fx-border-radius: 10; -fx-padding: 9 12 9 12; " +
                     "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 12, 0, 0, 4);"
         }
@@ -310,7 +311,7 @@ class App(
         } else {
             val first = instances.first()
             heroTitle.text = first.name
-            heroSub.text = "${first.version} · Ready to launch"
+            heroSub.text = "${first.version}, Ready to launch!"
         }
     }
 
@@ -501,7 +502,7 @@ class App(
             return
         }
 
-        // Efeito 3: entrada em cascata dos cards.
+        // Cascading entrance for the cards
         shown.forEachIndexed { index, instance ->
             val card = libraryCard(instance)
             cardsBox?.children?.add(card)
@@ -551,16 +552,27 @@ class App(
             setOnAction { launchInstance(instance, this) }
         }
 
-        // Efeito 2: pop de hover/click nos botões do card.
+        val delete = Button().apply {
+            styleClass.setAll("lib-fav")
+            isFocusTraversable = false
+            graphic = SVGPath().apply {
+                styleClass.setAll("lib-fav-glyph")
+                content = "M2,6h20M9,6V3h6v3M6,6h12v16H6zM10,10v6M14,10v6"
+            }
+            setOnAction { confirmDeleteInstance(instance) }
+        }
+
+        // Pop effect on hover/click for the card buttons
         installPop(play, hoverScale = 1.04, pressScale = 0.94)
         installPop(fav, hoverScale = 1.12, pressScale = 0.88)
+        installPop(delete, hoverScale = 1.12, pressScale = 0.88)
 
-        val actions = HBox(fav, play).apply { styleClass.setAll("lib-actions") }
+        val actions = HBox(fav, play, delete).apply { styleClass.setAll("lib-actions") }
 
         val card = VBox(heading, actions).apply {
             styleClass.setAll("lib-card")
         }
-        // Efeito 2: elevação animada do card inteiro no hover.
+        // Animated lift of the whole card on hover
         installLift(card)
         return card
     }
@@ -574,6 +586,8 @@ class App(
         val labelText = label?.text
         button?.isDisable = true
         if (label != null) label.text = "Launching…"
+        val window = stage()
+        window?.hide()
         scope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -582,6 +596,8 @@ class App(
             } catch (e: Exception) {
                 Platform.runLater { showLaunchError(instance, e) }
             } finally {
+                window?.show()
+                window?.toFront()
                 button?.let {
                     it.isDisable = false
                     if (label != null) label.text = labelText
@@ -596,6 +612,27 @@ class App(
             headerText = "Could not launch ${instance.name}"
             contentText = e.message ?: "Unknown error."
         }.show()
+    }
+
+    private fun confirmDeleteInstance(instance: org.deeplauncher.models.MinecraftInstance) {
+        val alert = Alert(Alert.AlertType.CONFIRMATION).apply {
+            title = "Delete instance"
+            headerText = "Delete ${instance.name}?"
+            contentText = "This will permanently remove the instance and all of its files."
+            initOwner(stage())
+            alertType = Alert.AlertType.CONFIRMATION
+            buttonTypes.setAll(ButtonType.OK, ButtonType.CANCEL)
+        }
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            scope.launch {
+                withContext(Dispatchers.IO) { instanceManager.deleteInstance(instance.name) }
+                favorites.remove(instance.name)
+                refreshThumbs()
+                refreshHero()
+                refreshQuickPlay()
+                if (mainScroll.content === libraryPage) refreshLibraryBody()
+            }
+        }
     }
 
     private fun highlightCard(name: String) {
@@ -701,9 +738,21 @@ class App(
                 progressBar.isVisible = true
                 progressBar.isManaged = true
                 progressBar.progress = -1.0
-                statusLabel.text = "Downloading version files…"
+                statusLabel.text = "Checking existing instances…"
                 scope.launch {
                     try {
+                        val exists = withContext(Dispatchers.IO) {
+                            instanceManager.listInstances().any { it.name == name }
+                        }
+                        if (exists) {
+                            isDisable = false
+                            text = "Create"
+                            progressBar.isVisible = false
+                            progressBar.isManaged = false
+                            statusLabel.text = "An instance with the name '$name' already exists."
+                            return@launch
+                        }
+                        statusLabel.text = "Downloading version files…"
                         withContext(Dispatchers.IO) {
                             instanceManager.createInstance(name, version) { completed, total, _ ->
                                 Platform.runLater {
