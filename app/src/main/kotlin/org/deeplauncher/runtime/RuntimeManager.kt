@@ -11,8 +11,8 @@ import org.deeplauncher.utils.OsUtils
 import java.io.File
 
 class RuntimeManager(private val downloader: Downloader) {
-    fun buildGameArguments(version: VersionDetail, gameDir: File, username: String): List<String> {
-        return ArgumentBuilder(version, gameDir, username).buildGameArguments()
+    fun buildGameArguments(version: VersionDetail, gameDir: File, username: String, uuid: String): List<String> {
+        return ArgumentBuilder(version, gameDir, username, uuid).buildGameArguments()
     }
 
     suspend fun downloadAndExtractJava(

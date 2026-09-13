@@ -9,6 +9,7 @@ import javafx.scene.Scene
 import javafx.scene.image.Image
 import javafx.stage.Stage
 import javafx.stage.WindowEvent
+import org.deeplauncher.account.AccountManager
 import org.deeplauncher.core.LauncherFiles
 import org.deeplauncher.instance.InstanceManager
 import org.deeplauncher.network.Downloader
@@ -30,11 +31,13 @@ class App : Application() {
         InstanceManager(versionManager, RuntimeManager(Downloader(client)))
     }
 
+    private val accountManager by lazy { AccountManager() }
+
     override fun start(primaryStage: Stage) {
         val loader = FXMLLoader(javaClass.getResource("/ui/launcher.fxml"))
         loader.setControllerFactory { type ->
             if (type == org.deeplauncher.ui.App::class.java) {
-                org.deeplauncher.ui.App(versionManager, instanceManager)
+                org.deeplauncher.ui.App(versionManager, instanceManager, accountManager)
             } else {
                 type.getDeclaredConstructor().newInstance()
             }
