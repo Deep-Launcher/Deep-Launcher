@@ -1,133 +1,129 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 
 <StackPane styleClass="root" fx:controller="org.deeplauncher.ui.App" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
 
-    <BorderPane>
-        <!-- ============ SIDEBAR ============ -->
-        <left>
-            <VBox styleClass="sidebar" prefWidth="56" spacing="0">
-                <!-- Navegacao: circulos com icones -->
-                <VBox styleClass="nav" alignment="TOP_CENTER" spacing="14">
-                    <Button styleClass="nav-icon, nav-icon-selected" fx:id="playBtn" onAction="#onPlayClicked" onMouseEntered="#showPlayTip" onMouseExited="#hideTip">
+    <Polyline fx:id="seamLine" styleClass="seam" layoutY="41" managed="false" mouseTransparent="true" />
+
+    <VBox styleClass="window">
+
+        <!-- ============ TITLE BAR ============ -->
+        <HBox styleClass="titlebar" alignment="CENTER_LEFT">
+            <HBox styleClass="titlebar-left" spacing="10">
+<StackPane styleClass="brand-mark">
+                        <Region styleClass="brand-mark-sculk" />
+                    </StackPane>
+                <Label styleClass="brand-name" text="Deep Launcher" />
+            </HBox>
+            <Region HBox.hgrow="ALWAYS" />
+            <HBox styleClass="titlebar-right" spacing="18">
+                <Button styleClass="icon-btn" fx:id="settingsBtn" onAction="#onSettingsClicked">
+                    <graphic>
+                        <SVGPath styleClass="icon-glyph" content="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" />
+                    </graphic>
+                </Button>
+                <HBox styleClass="win-controls">
+                    <Button styleClass="win-btn" fx:id="minimizeBtn" onAction="#onMinimize">
                         <graphic>
-                            <SVGPath styleClass="nav-icon-glyph" scaleX="0.85" scaleY="0.85" content="M8,5v14l11,-7z" />
+                            <SVGPath styleClass="win-glyph" content="M0,6h12v1.2H0z" />
                         </graphic>
                     </Button>
-                    <Button styleClass="nav-icon" fx:id="downloadsBtn" onAction="#onDownloadsClicked" onMouseEntered="#showDownloadsTip" onMouseExited="#hideTip">
+                    <Button styleClass="win-btn" fx:id="maximizeBtn" onAction="#onMaximize">
                         <graphic>
-                            <SVGPath styleClass="nav-icon-glyph" scaleX="0.85" scaleY="0.85" content="M19,9h-4V3H9v6H5l7,7 7,-7zM5,18v2h14v-2H5z" />
+                            <SVGPath styleClass="win-glyph" content="M1,1h10v10H1z" />
                         </graphic>
                     </Button>
-                    <Button styleClass="nav-icon" fx:id="settingsBtn" onAction="#onSettingsClicked" onMouseEntered="#showSettingsTip" onMouseExited="#hideTip">
+                    <Button styleClass="win-btn" fx:id="closeBtn" onAction="#onClose">
                         <graphic>
-                            <SVGPath styleClass="nav-icon-glyph" scaleX="0.85" scaleY="0.85" content="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" />
+                            <SVGPath styleClass="win-glyph" content="M0,0l12,12M12,0L0,12" />
                         </graphic>
                     </Button>
-                    <Button styleClass="nav-icon" fx:id="accountBtn" onAction="#onAccountClicked" onMouseEntered="#showAccountTip" onMouseExited="#hideTip">
-                        <graphic>
-                            <SVGPath styleClass="nav-icon-glyph" scaleX="0.85" scaleY="0.85" content="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z" />
-                        </graphic>
-                    </Button>
-                </VBox>
+                </HBox>
+            </HBox>
+        </HBox>
+
+        <!-- ============ SHELL ============ -->
+        <HBox styleClass="shell" VBox.vgrow="ALWAYS">
+
+            <!-- ============ SIDEBAR ============ -->
+            <VBox styleClass="sidebar">
+                <Button styleClass="side-btn" fx:id="navHome" onAction="#onNavHome" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M3,3h7v7H3zM14,3h7v7h-7zM3,14h7v7H3zM14,14h7v7h-7z" />
+                    </graphic>
+                </Button>
+                <Button styleClass="side-btn" fx:id="navDownloads" onAction="#onNavDownloads" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M21,16V8a2,2 0 0 0,-1,-1.73l-7,-4a2,2 0 0 0,-2,0l-7,4A2,2 0 0 0,3,8v8a2,2 0 0 0,1,1.73l7,4a2,2 0 0 0,2,0l7,-4A2,2 0 0 0,21,16zM3.27,6.96L12,12l8.73,-5.04M12,22.08V12" />
+                    </graphic>
+                </Button>
+                <Button styleClass="side-btn" fx:id="navLibrary" onAction="#onNavLibrary" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M6,3l1.5,2h9L18,3M4,7l2,-4h12l2,4M4,7v12a2,2 0 0 0,2,2h12a2,2 0 0 0,2,-2V7M4,7h16" />
+                    </graphic>
+                </Button>
+                <Button styleClass="side-btn" fx:id="navFiles" onAction="#onNavFiles" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M3,4h18v4H3zM5,8v10a2,2 0 0 0,2,2h10a2,2 0 0 0,2,-2V8M10,12h4" />
+                    </graphic>
+                </Button>
+
+                <Region styleClass="side-sep" />
+
+                <Button styleClass="side-btn" fx:id="addButton" onAction="#onAddInstance" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M12,5v14M5,12h14" />
+                    </graphic>
+                </Button>
+                <Button styleClass="side-thumb" fx:id="thumb1" />
+                <Button styleClass="side-thumb" fx:id="thumb2" />
+                <Button styleClass="side-thumb" fx:id="thumb3" />
 
                 <Region VBox.vgrow="ALWAYS" />
 
-                <!-- Rodape da sidebar -->
-                <VBox styleClass="sidebar-footer" spacing="6">
-                    <padding>
-                        <Insets bottom="18" left="20" right="20" top="10" />
-                    </padding>
-                    <Label styleClass="version-label" text="v0.1.0" />
-                </VBox>
+                <Button styleClass="side-btn" fx:id="accountBtn" onAction="#onAccountClicked" onMouseEntered="#onNavEntered" onMouseExited="#onNavExited">
+                    <graphic>
+                        <SVGPath styleClass="side-glyph" content="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z" />
+                    </graphic>
+                </Button>
             </VBox>
-        </left>
 
-        <!-- ============ CONTEUDO ============ -->
-        <center>
-            <VBox styleClass="content" spacing="0">
-                <!-- Topbar -->
-                <HBox styleClass="topbar" alignment="CENTER_LEFT" spacing="12">
-                    <padding>
-                        <Insets top="18" right="24" bottom="18" left="24" />
-                    </padding>
-                    <Label styleClass="topbar-title" text="Home" fx:id="topbarTitle" />
-                    <Region HBox.hgrow="ALWAYS" />
-                    <Label styleClass="topbar-notice" text="No Account" fx:id="accountStatus" />
-                </HBox>
+            <!-- ============ MAIN ============ -->
+            <ScrollPane styleClass="main-scroll" fitToWidth="true" HBox.hgrow="ALWAYS" fx:id="mainScroll">
+                <VBox styleClass="main" fx:id="homePage">
 
-                <Separator styleClass="separator" />
-
-                <ScrollPane fitToWidth="true" styleClass="content-scroll" VBox.vgrow="ALWAYS">
-                    <VBox spacing="18">
-                        <padding>
-                            <Insets top="24" right="28" bottom="24" left="28" />
-                        </padding>
-
-                        <!-- Card da instancia ativa -->
-                        <VBox styleClass="card" spacing="14">
-                            <HBox alignment="CENTER_LEFT" spacing="16">
-                                <ImageView styleClass="instance-icon" fitWidth="52" fitHeight="52" preserveRatio="true">
-                                    <image>
-                                        <Image url="@sculk.png" />
-                                    </image>
-                                </ImageView>
-                                <VBox spacing="4">
-                                    <Label styleClass="instance-name" text="Base Version" fx:id="instanceName" />
-                                    <Label styleClass="instance-meta" text="1.21 Saga · Java Edition" fx:id="instanceMeta" />
-                                </VBox>
-                                <Region HBox.hgrow="ALWAYS" />
-                                <Button styleClass="play-button" text="Play" fx:id="launchButton" />
-                            </HBox>
+                    <!-- Hero -->
+                    <StackPane styleClass="hero-heading" alignment="BOTTOM_LEFT">
+                        <VBox styleClass="hero-text" spacing="4">
+                            <Label styleClass="hero-title" fx:id="heroTitle" text="Welcome back" />
+                            <Label styleClass="hero-subtext" fx:id="heroSub" text="Pick an instance and press play." />
                         </VBox>
+                    </StackPane>
 
-                        <!-- Instancias disponiveis -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label styleClass="section-title" text="Instances" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Button styleClass="small-button" text="+ New Instance" />
+                    <HBox styleClass="hero-actions" alignment="CENTER_RIGHT">
+                        <Button styleClass="btn" fx:id="libraryBtn" onAction="#onBrowseLibrary">
+                            <graphic>
+                                <SVGPath styleClass="btn-glyph" content="M6,3l1.5,2h9L18,3M4,7l2,-4h12l2,4M4,7v12a2,2 0 0 0,2,2h12a2,2 0 0 0,2,-2V7M4,7h16" />
+                            </graphic>
+                        </Button>
+                    </HBox>
+
+                    <!-- Quick Play -->
+                    <HBox styleClass="quickplay" alignment="CENTER_LEFT">
+                        <HBox styleClass="qp-label" spacing="8">
+                            <SVGPath styleClass="qp-glyph" content="M15,12L6,6L6,18Z" />
+                            <Label text="Quick Play" />
                         </HBox>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <HBox fx:id="quickThumbs" styleClass="qp-thumbs" spacing="10" />
+                    </HBox>
 
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <VBox styleClass="instance-card" HBox.hgrow="ALWAYS" spacing="6">
-                                <ImageView styleClass="instance-icon-small" fitWidth="34" fitHeight="34" preserveRatio="true">
-                                    <image>
-                                        <Image url="@sculk.png" />
-                                    </image>
-                                </ImageView>
-                                <Label styleClass="instance-card-name" text="Base Version" />
-                                <Label styleClass="instance-card-meta" text="1.21 Saga" />
-                            </VBox>
-                            <VBox styleClass="instance-card" HBox.hgrow="ALWAYS" spacing="6">
-                                <ImageView styleClass="instance-icon-small" fitWidth="34" fitHeight="34" preserveRatio="true">
-                                    <image>
-                                        <Image url="@sculk.png" />
-                                    </image>
-                                </ImageView>
-                                <Label styleClass="instance-card-name" text="Vanilla Snapshots" />
-                                <Label styleClass="instance-card-meta" text="1.21.4-WA" />
-                            </VBox>
-                            <VBox styleClass="instance-card" HBox.hgrow="ALWAYS" spacing="6">
-                                <ImageView styleClass="instance-icon-small" fitWidth="34" fitHeight="34" preserveRatio="true">
-                                    <image>
-                                        <Image url="@sculk.png" />
-                                    </image>
-                                </ImageView>
-                                <Label styleClass="instance-card-name" text="Modded" />
-                                <Label styleClass="instance-card-meta" text="Not Configured" />
-                            </VBox>
-                        </HBox>
-                    </VBox>
-                </ScrollPane>
-            </VBox>
-        </center>
-    </BorderPane>
+                </VBox>
+            </ScrollPane>
 
-    <!-- Card overlay: mostra o nome do item ao passar o mouse -->
-    <Label styleClass="nav-tip" fx:id="navTip" visible="false" managed="false" />
+        </HBox>
+    </VBox>
 </StackPane>

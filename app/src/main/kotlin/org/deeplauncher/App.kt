@@ -14,9 +14,31 @@ import org.deeplauncher.runtime.RuntimeManager
 import org.deeplauncher.version.VersionManager
 
 class App : Application() {
+
+    private val versionManager by lazy {
+        VersionManager(
+            downloader = Downloader(client),
+            client = client,
+            launcherFiles = LauncherFiles
+        )
+    }
+
+    private val instanceManager by lazy {
+        InstanceManager(versionManager, RuntimeManager(Downloader(client)))
+    }
+
     override fun start(primaryStage: Stage) {
-        val root = FXMLLoader.load<Parent>(javaClass.getResource("/ui/launcher.fxml"))
-        val scene = Scene(root, 1000.0, 640.0)
+        val loader = FXMLLoader(javaClass.getResource("/ui/launcher.fxml"))
+        loader.setControllerFactory { type ->
+            if (type == org.deeplauncher.ui.App::class.java) {
+                org.deeplauncher.ui.App(versionManager, instanceManager)
+            } else {
+                type.getDeclaredConstructor().newInstance()
+            }
+        }
+
+        val root = loader.load<Parent>()
+        val scene = Scene(root, 1360.0, 768.0)
 
         scene.stylesheets.add(javaClass.getResource("/ui/style.css").toExternalForm())
 
@@ -30,14 +52,5 @@ class App : Application() {
 }
 
 fun main() {
-    val downloader = Downloader(client)
-    val versionManager = VersionManager(
-        downloader = downloader,
-        client = client,
-        launcherFiles = LauncherFiles,
-    )
-    val runtimeManager = RuntimeManager(downloader)
-    val instanceManager = InstanceManager(versionManager, runtimeManager)
-
     Application.launch(App::class.java)
 }

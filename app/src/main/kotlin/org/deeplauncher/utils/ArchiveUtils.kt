@@ -29,7 +29,7 @@ object ArchiveUtils {
 
     fun unzipTarGz(tarGzFile: File, targetDir: File) {
         if (!tarGzFile.exists() || tarGzFile.length() == 0L) {
-            throw IllegalStateException("Arquivo tar.gz ausente ou vazio: ${tarGzFile.absolutePath}")
+            throw IllegalStateException("Missing or empty tar.gz file: ${tarGzFile.absolutePath}")
         }
 
         val process = ProcessBuilder("tar", "-xzf", tarGzFile.absolutePath, "-C", targetDir.absolutePath)
@@ -40,13 +40,13 @@ object ArchiveUtils {
         val exitCode = process.waitFor()
 
         if (exitCode != 0) {
-            throw IllegalStateException("Erro ao descompactar o tar.gz (código $exitCode): $output")
+            throw IllegalStateException("Failed to extract tar.gz (exit code $exitCode): $output")
         }
     }
 
     fun unzip(zipFile: File, targetDir: File) {
         if (!zipFile.exists() || zipFile.length() == 0L) {
-            throw IllegalStateException("Arquivo zip ausente ou vazio: ${zipFile.absolutePath}")
+            throw IllegalStateException("Missing or empty zip file: ${zipFile.absolutePath}")
         }
 
         ZipInputStream(zipFile.inputStream()).use { zis ->
