@@ -8,15 +8,17 @@ object LauncherFiles {
     val instancesDir = File(rootDir, "instances")
     val librariesDir = File(rootDir, "libraries")
     val assetsDir = File(rootDir, "assets")
+    val versionsDir = File(rootDir, "versions")
 
     init {
         if (!cacheDir.exists()) cacheDir.mkdirs()
         if (!instancesDir.exists()) instancesDir.mkdirs()
         if (!librariesDir.exists()) librariesDir.mkdirs()
         if (!assetsDir.exists()) assetsDir.mkdirs()
+        if (!versionsDir.exists()) versionsDir.mkdirs()
     }
 
-    fun getNativesDir(versionId: String): File = File(rootDir, "versions/$versionId/natives")
+    fun getNativesDir(versionId: String): File = File(versionsDir, "$versionId/natives")
 
     fun getJavaPathForMajorVersion(majorVersion: Int): String {
         val javaBinaryName = if (System.getProperty("os.name").lowercase().contains("win")) "java.exe" else "java"

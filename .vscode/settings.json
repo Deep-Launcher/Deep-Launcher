@@ -1,6 +1,0 @@
-{
-  "css.lint.vendorPrefix": "ignore",
-  "files.associations": {
-    "*.fxml": "xml"
-  }
-}
