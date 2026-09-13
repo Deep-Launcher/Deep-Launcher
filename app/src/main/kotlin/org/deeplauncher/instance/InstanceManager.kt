@@ -28,6 +28,7 @@ class InstanceManager(
         val versionDetail: VersionDetail = client.get(versionInfo.url).body()
 
         versionManager.ensureLibraryFiles(versionDetail)
+        versionManager.ensureLegacyResources(versionDetail, instanceDir)
 
         val requiredJavaVersion = versionManager.getRequiredJavaMajorVersion(versionDetail)
         val javaExecutablePath = LauncherFiles.getJavaPathForMajorVersion(requiredJavaVersion)
