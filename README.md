@@ -5,8 +5,9 @@
 A clean, minimal Minecraft launcher built with Kotlin and JavaFX.
 
 Deep Launcher manages multiple game instances with isolated mods, saves and
-resource packs, downloads any official Mojang version, and handles the Java
-runtime and libraries for you.
+resource packs, downloads any official Mojang version, handles the Java
+runtime and libraries for you, and lets you play with offline accounts you
+create and switch inside the launcher.
 
 ## Requirements
 
@@ -26,7 +27,8 @@ additional setup is needed besides a JDK to build and launch the app.
 1. Click **+** to create a new instance.
 2. Enter a name and pick a Minecraft version from the list.
 3. Wait for the download to finish. You can close the *New Instance* dialog and track progress from the **Downloads** button on the sidebar while it runs.
-4. Hit **Play**; the launcher hides while the game runs and reappears when you close it.
+4. Open the **Account** button on the sidebar, type a nickname and press **Add Account**. An offline UUID is generated from your nickname automatically and the account becomes active.
+5. Hit **Play** with an account active; the launcher hides while the game runs and reappears when you close it.
 
 ## Tech Stack
 
@@ -40,6 +42,7 @@ additional setup is needed besides a JDK to build and launch the app.
 
 ```
 app/src/main/kotlin/org/deeplauncher/
+├── account/    Offline account store and selection
 ├── core/       Launcher paths and endpoints
 ├── network/    Downloads and progress tracking
 ├── version/    Version manifest and asset handling
